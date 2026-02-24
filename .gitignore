@@ -1,16 +1,28 @@
+# ==============================
 # Build output
+# ==============================
 bin/
 obj/
 
+# ==============================
 # Visual Studio
+# ==============================
 .vs/
 *.user
+*.suo
 
-# Node (hvis du får det senere)
+# ==============================
+# Node
+# ==============================
 node_modules/
 
+# ==============================
 # Secrets
-appsettings.Development.json
+# ==============================
 .env
+appsettings.Development.json
 
-ShoppingApplication/api/ShoppingApi/appsettings.json
+# ==============================
+# Local overrides
+# ==============================
+docker-compose.override.yml
