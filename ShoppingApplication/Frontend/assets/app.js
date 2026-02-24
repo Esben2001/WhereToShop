@@ -122,27 +122,31 @@ async function apiClearDone(listId) {
 // =====================================================
 
 async function loadLists() {
-  // Hent lister (summary)
   const summaries = await apiGetLists();
 
-  // Gem i state som “full-ish” objekter (items tom indtil vi henter en liste)
+  // Gem summary counts i state
   state.lists = summaries.map(l => ({
     id: l.id,
     name: l.name,
     createdAt: l.createdAt,
+
+    // Fra API:
+    openCount: l.openCount ?? 0,
+    totalCount: l.totalCount ?? 0,
+
+    // Items hentes kun for aktiv liste
     items: []
   }));
 
-  // Vælg automatisk første liste hvis ingen aktiv
   if (!state.activeListId && state.lists.length > 0) {
     state.activeListId = state.lists[0].id;
   }
 
   if (state.activeListId) {
-    await loadActiveList();       // henter items + navn fra server
-    setRightPanelEnabled(true);   // AKTIVER højre panel
+    await loadActiveList();     // henter items for aktiv liste
+    setRightPanelEnabled(true);
   } else {
-    setRightPanelEnabled(false);  // ingen liste → lås højre panel
+    setRightPanelEnabled(false);
   }
 
   renderAll();
@@ -150,11 +154,20 @@ async function loadLists() {
 
 async function loadActiveList() {
   if (!state.activeListId) return;
+
   const full = await apiGetList(state.activeListId);
+
+  const totalCount = (full.items ?? []).length;
+  const openCount = (full.items ?? []).filter(i => !i.isDone).length;
 
   const idx = state.lists.findIndex(l => l.id === full.id);
   if (idx >= 0) {
-    state.lists[idx] = full;
+    state.lists[idx] = {
+      ...state.lists[idx],
+      ...full,
+      openCount,
+      totalCount
+    };
   }
 }
 
@@ -172,8 +185,9 @@ function renderLists() {
 
   for (const list of filtered) {
 
-    const openCount = (list.items ?? []).filter(i => !i.isDone).length;
-    const total = (list.items ?? []).length;
+    const total = list.totalCount ?? (list.items?.length ?? 0);
+    const open = list.openCount ?? (list.items?.filter(i => !i.isDone).length ?? 0);
+    const done = total - open;
 
     const card = document.createElement("div");
     card.className = "list-card" + (list.id === state.activeListId ? " active" : "");
@@ -181,7 +195,7 @@ function renderLists() {
     card.innerHTML = `
       <div class="row">
         <div class="title">${escapeHtml(list.name)}</div>
-        <div class="badge">${openCount}/${total}</div>
+        <div class="badge">${done}/${total}</div>
       </div>
     `;
 
@@ -199,11 +213,40 @@ function renderItems() {
   const list = state.lists.find(l => l.id === state.activeListId);
   els.items.innerHTML = "";
 
-  if (!list) return;
+  if (!list) {
+    els.activeListTitle.textContent = "Vælg en liste";
+    els.activeListMeta.textContent = "Opret eller vælg en liste til venstre.";
+    els.stats.textContent = "0 varer";
+    setRightPanelEnabled(false);
+    return;
+  }
 
+  setRightPanelEnabled(true);
   els.activeListTitle.textContent = list.name;
 
-  const items = list.items ?? [];
+  const allItems = list.items ?? [];
+
+  const total = allItems.length;
+  const doneCount = allItems.filter(i => i.isDone).length;
+  const openCount = total - doneCount;
+
+  els.activeListMeta.textContent = `${openCount} ikke købt • ${doneCount} købt • ${total} i alt`;
+  els.stats.textContent = `${openCount} ikke købt • ${total} varer`;
+
+  // Apply filter
+  let items = [...allItems].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  if (state.itemFilter === "open") items = items.filter(i => !i.isDone);
+  if (state.itemFilter === "done") items = items.filter(i => i.isDone);
+
+  // Chip UI (hvis dine knapper har "active" css class)
+  setChipActive(els.filterAll, state.itemFilter === "all");
+  setChipActive(els.filterOpen, state.itemFilter === "open");
+  setChipActive(els.filterDone, state.itemFilter === "done");
+
+  if (items.length === 0) {
+    els.items.innerHTML = `<div class="muted" style="padding:10px">Ingen varer i denne visning.</div>`;
+    return;
+  }
 
   for (const item of items) {
     const row = document.createElement("div");
@@ -214,12 +257,12 @@ function renderItems() {
         <div class="check">${item.isDone ? "✓" : ""}</div>
         <div class="item-name">
           <strong>${escapeHtml(item.name)}</strong>
-          <span>${item.qty ?? ""}</span>
+          <span>${item.qty ? escapeHtml(item.qty) : ""}</span>
         </div>
       </div>
       <div class="item-actions">
-        <button class="iconbtn">✔</button>
-        <button class="iconbtn danger">🗑</button>
+        <button class="iconbtn" title="${item.isDone ? "Marker som ikke købt" : "Marker som købt"}">✔</button>
+        <button class="iconbtn danger" title="Slet vare">🗑</button>
       </div>
     `;
 
@@ -237,8 +280,20 @@ function renderItems() {
       renderAll();
     });
 
+    // klik på venstre side toggler også
+    row.querySelector(".item-left").addEventListener("click", async () => {
+      await apiToggleItem(list.id, item.id);
+      await loadActiveList();
+      renderAll();
+    });
+
     els.items.appendChild(row);
   }
+}
+
+function setChipActive(el, active) {
+  if (!el) return;
+  el.classList.toggle("active", active);
 }
 
 function renderAll() {
@@ -318,6 +373,39 @@ els.btnNewList.addEventListener("click", createList);
 els.btnRenameList.addEventListener("click", renameList);
 els.btnDeleteList.addEventListener("click", deleteList);
 els.itemForm.addEventListener("submit", addItem);
+
+els.filterAll.addEventListener("click", () => {
+  state.itemFilter = "all";
+  renderItems();
+});
+
+els.filterOpen.addEventListener("click", () => {
+  state.itemFilter = "open";
+  renderItems();
+});
+
+els.filterDone.addEventListener("click", () => {
+  state.itemFilter = "done";
+  renderItems();
+});
+
+els.btnClearDone.addEventListener("click", async () => {
+  const list = state.lists.find(l => l.id === state.activeListId);
+  if (!list) return;
+
+  const doneCount = (list.items ?? []).filter(i => i.isDone).length;
+  if (doneCount === 0) return;
+
+  await apiClearDone(list.id);
+  await loadActiveList();
+  renderAll();
+});
+
+els.listSearch.addEventListener("input", (e) => {
+  state.listSearch = e.target.value || "";
+  renderLists();
+});
+
 
 // =====================================================
 // INIT
