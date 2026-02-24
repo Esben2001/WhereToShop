@@ -4,10 +4,10 @@ using ShoppingApi.Dtos;
 
 namespace ShoppingApi.Repositories;
 
-public class ShoppingListRepository
+public class ShoppingListRepository : IShoppingListRepository
 {
-    private readonly Db _db;
-    public ShoppingListRepository(Db db) => _db = db;
+    private readonly Database _db;
+    public ShoppingListRepository(Database db) => _db = db;
 
     // =====================================================
     // LIST OVERVIEW (summary)

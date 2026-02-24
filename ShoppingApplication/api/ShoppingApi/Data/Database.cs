@@ -3,10 +3,10 @@ using System.Data;
 
 namespace ShoppingApi.Data;
 
-public class Db
+public class Database
 {
     private readonly IConfiguration _config;
-    public Db(IConfiguration config) => _config = config;
+    public Database(IConfiguration config) => _config = config;
 
     public IDbConnection CreateConnection()
         => new SqlConnection(_config.GetConnectionString("Default"));
