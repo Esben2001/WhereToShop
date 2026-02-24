@@ -1,0 +1,36 @@
+IF DB_ID('ShoppingDb') IS NULL
+BEGIN
+  CREATE DATABASE ShoppingDb;
+END
+GO
+
+USE ShoppingDb;
+GO
+
+IF OBJECT_ID('dbo.ShoppingLists', 'U') IS NULL
+BEGIN
+  CREATE TABLE dbo.ShoppingLists (
+    Id UNIQUEIDENTIFIER NOT NULL PRIMARY KEY,
+    Name NVARCHAR(120) NOT NULL,
+    CreatedAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME()
+  );
+END
+GO
+
+IF OBJECT_ID('dbo.ShoppingItems', 'U') IS NULL
+BEGIN
+  CREATE TABLE dbo.ShoppingItems (
+    Id UNIQUEIDENTIFIER NOT NULL PRIMARY KEY,
+    ListId UNIQUEIDENTIFIER NOT NULL,
+    Name NVARCHAR(200) NOT NULL,
+    Qty NVARCHAR(40) NULL,
+    IsDone BIT NOT NULL DEFAULT 0,
+    CreatedAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+    CONSTRAINT FK_ShoppingItems_ShoppingLists
+      FOREIGN KEY (ListId) REFERENCES dbo.ShoppingLists(Id)
+      ON DELETE CASCADE
+  );
+
+  CREATE INDEX IX_ShoppingItems_ListId ON dbo.ShoppingItems(ListId);
+END
+GO
