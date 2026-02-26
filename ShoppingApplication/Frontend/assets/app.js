@@ -1,427 +1,213 @@
-/**
- * Indkøbsliste frontend – 100% API baseret
- * Backend: ASP.NET Core + Dapper + SQL Server
- */
+const { useState, useEffect } = React;
 
 const API_BASE = "http://localhost:5000/api";
 
-const $ = (sel) => document.querySelector(sel);
+const App = () => {
+  const [lists, setLists] = useState([]);
+  const [activeList, setActiveList] = useState(null);
+  const [activeListId, setActiveListId] = useState(null);
+  const [listSearch, setListSearch] = useState("");
+  const [itemFilter, setItemFilter] = useState("all");
+  const [newItem, setNewItem] = useState({ name: "", qty: "" });
 
-const els = {
-  btnNewList: $("#btnNewList"),
-  listSearch: $("#listSearch"),
-  lists: $("#lists"),
+  // Init: Hent lister
+  useEffect(() => {
+    fetchLists();
+  }, []);
 
-  activeListTitle: $("#activeListTitle"),
-  activeListMeta: $("#activeListMeta"),
+  // Hent aktiv liste når ID skifter
+  useEffect(() => {
+    if (activeListId) fetchActiveList(activeListId);
+  }, [activeListId]);
 
-  btnRenameList: $("#btnRenameList"),
-  btnDeleteList: $("#btnDeleteList"),
+  const fetchLists = async () => {
+    const r = await fetch(`${API_BASE}/lists`);
+    const data = await r.json();
+    setLists(data);
+    if (data.length > 0 && !activeListId) setActiveListId(data[0].id);
+  };
 
-  itemForm: $("#itemForm"),
-  itemName: $("#itemName"),
-  itemQty: $("#itemQty"),
-  items: $("#items"),
+  const fetchActiveList = async (id) => {
+    const r = await fetch(`${API_BASE}/lists/${id}`);
+    const data = await r.json();
+    setActiveList(data);
+  };
 
-  filterAll: $("#filterAll"),
-  filterOpen: $("#filterOpen"),
-  filterDone: $("#filterDone"),
-  btnClearDone: $("#btnClearDone"),
+  const handleCreateList = async () => {
+    const name = prompt("Navn på liste:");
+    if (!name) return;
+    await fetch(`${API_BASE}/lists`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name }),
+    });
+    fetchLists();
+  };
 
-  stats: $("#stats"),
+  // NY: Logik til at omdøbe liste
+  const handleRenameList = async () => {
+    if (!activeListId) return;
+    const newName = prompt("Nyt navn på listen:", activeList.name);
+    if (!newName || newName === activeList.name) return;
 
-  modalBackdrop: $("#modalBackdrop"),
-  modalTitle: $("#modalTitle"),
-  modalText: $("#modalText"),
-  modalInputWrap: $("#modalInputWrap"),
-  modalInput: $("#modalInput"),
-  modalCancel: $("#modalCancel"),
-  modalOk: $("#modalOk"),
-};
+    await fetch(`${API_BASE}/lists/${activeListId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: newName }),
+    });
+    
+    fetchLists(); // Opdater oversigten til venstre
+    fetchActiveList(activeListId); // Opdater titlen i højre panel
+  };
 
-const state = {
-  lists: [],
-  activeListId: null,
-  listSearch: "",
-  itemFilter: "all",
-};
+  // NY: Logik til at slette liste
+  const handleDeleteList = async () => {
+    if (!activeListId) return;
+    if (!confirm(`Er du sikker på at du vil slette "${activeList.name}"?`)) return;
 
-// =====================================================
-// API CALLS
-// =====================================================
-
-async function apiGetLists() {
-  const r = await fetch(`${API_BASE}/lists`);
-  if (!r.ok) throw new Error("Kunne ikke hente lister");
-  return await r.json();
-}
-
-async function apiGetList(id) {
-  const r = await fetch(`${API_BASE}/lists/${id}`);
-  if (!r.ok) throw new Error("Kunne ikke hente liste");
-  return await r.json();
-}
-
-async function apiCreateList(name) {
-  const r = await fetch(`${API_BASE}/lists`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name }),
-  });
-  if (!r.ok) throw new Error("Kunne ikke oprette liste");
-  return await r.json();
-}
-
-async function apiRenameList(id, name) {
-  const r = await fetch(`${API_BASE}/lists/${id}`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name }),
-  });
-  if (!r.ok) throw new Error("Kunne ikke omdøbe liste");
-}
-
-async function apiDeleteList(id) {
-  const r = await fetch(`${API_BASE}/lists/${id}`, { method: "DELETE" });
-  if (!r.ok) throw new Error("Kunne ikke slette liste");
-}
-
-async function apiAddItem(listId, name, qty) {
-  const r = await fetch(`${API_BASE}/lists/${listId}/items`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name, qty }),
-  });
-  if (!r.ok) throw new Error("Kunne ikke tilføje vare");
-  return await r.json(); // updated list
-}
-
-async function apiToggleItem(listId, itemId) {
-  const r = await fetch(`${API_BASE}/lists/${listId}/items/${itemId}/toggle`, {
-    method: "PATCH",
-  });
-  if (!r.ok) throw new Error("Kunne ikke toggle vare");
-}
-
-async function apiDeleteItem(listId, itemId) {
-  const r = await fetch(`${API_BASE}/lists/${listId}/items/${itemId}`, {
-    method: "DELETE",
-  });
-  if (!r.ok) throw new Error("Kunne ikke slette vare");
-}
-
-async function apiClearDone(listId) {
-  const r = await fetch(`${API_BASE}/lists/${listId}/items/done`, {
-    method: "DELETE",
-  });
-  if (!r.ok) throw new Error("Kunne ikke rydde købte");
-}
-
-// =====================================================
-// DATA LOAD
-// =====================================================
-
-async function loadLists() {
-  const summaries = await apiGetLists();
-
-  // Gem summary counts i state
-  state.lists = summaries.map(l => ({
-    id: l.id,
-    name: l.name,
-    createdAt: l.createdAt,
-
-    // Fra API:
-    openCount: l.openCount ?? 0,
-    totalCount: l.totalCount ?? 0,
-
-    // Items hentes kun for aktiv liste
-    items: []
-  }));
-
-  if (!state.activeListId && state.lists.length > 0) {
-    state.activeListId = state.lists[0].id;
-  }
-
-  if (state.activeListId) {
-    await loadActiveList();     // henter items for aktiv liste
-    setRightPanelEnabled(true);
-  } else {
-    setRightPanelEnabled(false);
-  }
-
-  renderAll();
-}
-
-async function loadActiveList() {
-  if (!state.activeListId) return;
-
-  const full = await apiGetList(state.activeListId);
-
-  const totalCount = (full.items ?? []).length;
-  const openCount = (full.items ?? []).filter(i => !i.isDone).length;
-
-  const idx = state.lists.findIndex(l => l.id === full.id);
-  if (idx >= 0) {
-    state.lists[idx] = {
-      ...state.lists[idx],
-      ...full,
-      openCount,
-      totalCount
-    };
-  }
-}
-
-// =====================================================
-// RENDERING
-// =====================================================
-
-function renderLists() {
-  const q = state.listSearch.toLowerCase();
-  els.lists.innerHTML = "";
-
-  const filtered = state.lists
-    .filter(l => l.name.toLowerCase().includes(q))
-    .sort((a,b)=> new Date(b.createdAt)-new Date(a.createdAt));
-
-  for (const list of filtered) {
-
-    const total = list.totalCount ?? (list.items?.length ?? 0);
-    const open = list.openCount ?? (list.items?.filter(i => !i.isDone).length ?? 0);
-    const done = total - open;
-
-    const card = document.createElement("div");
-    card.className = "list-card" + (list.id === state.activeListId ? " active" : "");
-
-    card.innerHTML = `
-      <div class="row">
-        <div class="title">${escapeHtml(list.name)}</div>
-        <div class="badge">${done}/${total}</div>
-      </div>
-    `;
-
-    card.addEventListener("click", async () => {
-      state.activeListId = list.id;
-      await loadActiveList();
-      renderAll();
+    await fetch(`${API_BASE}/lists/${activeListId}`, {
+      method: "DELETE",
     });
 
-    els.lists.appendChild(card);
-  }
-}
+    setActiveListId(null);
+    setActiveList(null);
+    fetchLists();
+  };
 
-function renderItems() {
-  const list = state.lists.find(l => l.id === state.activeListId);
-  els.items.innerHTML = "";
+  const handleAddItem = async (e) => {
+    e.preventDefault();
+    if (!newItem.name || !activeListId) return;
+    await fetch(`${API_BASE}/lists/${activeListId}/items`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(newItem),
+    });
+    setNewItem({ name: "", qty: "" });
+    fetchActiveList(activeListId);
+  };
 
-  if (!list) {
-    els.activeListTitle.textContent = "Vælg en liste";
-    els.activeListMeta.textContent = "Opret eller vælg en liste til venstre.";
-    els.stats.textContent = "0 varer";
-    setRightPanelEnabled(false);
-    return;
-  }
+  const toggleItem = async (itemId) => {
+    await fetch(`${API_BASE}/lists/${activeListId}/items/${itemId}/toggle`, { method: "PATCH" });
+    fetchActiveList(activeListId);
+  };
 
-  setRightPanelEnabled(true);
-  els.activeListTitle.textContent = list.name;
+  const deleteItem = async (itemId) => {
+    await fetch(`${API_BASE}/lists/${activeListId}/items/${itemId}`, { method: "DELETE" });
+    fetchActiveList(activeListId);
+  };
 
-  const allItems = list.items ?? [];
+  // Filtrering af varer
+  const filteredItems = (activeList?.items || []).filter(item => {
+    if (itemFilter === "open") return !item.isDone;
+    if (itemFilter === "done") return item.isDone;
+    return true;
+  });
 
-  const total = allItems.length;
-  const doneCount = allItems.filter(i => i.isDone).length;
-  const openCount = total - doneCount;
-
-  els.activeListMeta.textContent = `${openCount} ikke købt • ${doneCount} købt • ${total} i alt`;
-  els.stats.textContent = `${openCount} ikke købt • ${total} varer`;
-
-  // Apply filter
-  let items = [...allItems].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-  if (state.itemFilter === "open") items = items.filter(i => !i.isDone);
-  if (state.itemFilter === "done") items = items.filter(i => i.isDone);
-
-  // Chip UI (hvis dine knapper har "active" css class)
-  setChipActive(els.filterAll, state.itemFilter === "all");
-  setChipActive(els.filterOpen, state.itemFilter === "open");
-  setChipActive(els.filterDone, state.itemFilter === "done");
-
-  if (items.length === 0) {
-    els.items.innerHTML = `<div class="muted" style="padding:10px">Ingen varer i denne visning.</div>`;
-    return;
-  }
-
-  for (const item of items) {
-    const row = document.createElement("div");
-    row.className = "item" + (item.isDone ? " done" : "");
-
-    row.innerHTML = `
-      <div class="item-left">
-        <div class="check">${item.isDone ? "✓" : ""}</div>
-        <div class="item-name">
-          <strong>${escapeHtml(item.name)}</strong>
-          <span>${item.qty ? escapeHtml(item.qty) : ""}</span>
+  return (
+    <div className="max-w-[1100px] mx-auto my-7 p-4">
+      {/* Topbar */}
+      <header className="flex justify-between items-center p-4 border border-white/10 bg-white/5 rounded-2xl shadow-2xl mb-4 backdrop-blur-md">
+        <div className="flex items-center gap-3">
+          <div className="w-11 h-11 rounded-xl flex items-center justify-center bg-gradient-to-br from-cyan-400/30 to-blue-500/20 border border-white/10 text-2xl">🛒</div>
+          <div>
+            <h1 className="text-xl font-bold">Indkøbslister</h1>
+            <p className="text-slate-400 text-xs">Hold styr på dine varer — enkelt og hurtigt.</p>
+          </div>
         </div>
+        <button onClick={handleCreateList} className="bg-cyan-500/20 border border-cyan-400/30 text-white px-4 py-2 rounded-xl hover:bg-cyan-500/30 transition-all font-bold">+ Ny liste</button>
+      </header>
+
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.4fr] gap-4">
+        {/* Left Panel: Lister */}
+        <section className="border border-white/10 bg-white/5 rounded-2xl p-4 shadow-2xl min-h-[560px]">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-bold">Dine lister</h2>
+            <input 
+              className="bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-sm outline-none focus:border-cyan-500/50"
+              placeholder="Søg lister..."
+              onChange={(e) => setListSearch(e.target.value)}
+            />
+          </div>
+          
+          <div className="flex flex-col gap-2">
+            {lists.filter(l => l.name.toLowerCase().includes(listSearch.toLowerCase())).map(list => (
+              <div 
+                key={list.id}
+                onClick={() => setActiveListId(list.id)}
+                className={`p-3 rounded-xl border cursor-pointer transition-all flex justify-between items-center ${activeListId === list.id ? 'border-cyan-500/50 bg-cyan-500/10' : 'border-white/5 bg-black/10 hover:border-white/20'}`}
+              >
+                <span className="font-semibold">{list.name}</span>
+                <span className="text-[10px] text-slate-500 bg-white/5 px-2 py-1 rounded-full">{list.totalCount || 0} varer</span>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* Right Panel: Varer */}
+        <section className="border border-white/10 bg-white/5 rounded-2xl p-4 shadow-2xl min-h-[560px]">
+          {activeList ? (
+            <>
+              <div className="flex justify-between items-start mb-4">
+                <h2 className="text-2xl font-bold">{activeList.name}</h2>
+                <div className="flex gap-2">
+                  <button onClick={handleRenameList} className="text-xs bg-white/5 px-3 py-1.5 rounded-lg border border-white/10">Omdøb</button>
+                  <button onClick={handleDeleteList} className="text-xs bg-red-500/10 border border-red-500/20 text-red-400 px-3 py-1.5 rounded-lg">Slet</button>
+                </div>
+              </div>
+
+              <form onSubmit={handleAddItem} className="grid grid-cols-[1fr_120px_auto] gap-2 mb-4">
+                <input 
+                  className="bg-black/20 border border-white/10 rounded-xl px-3 py-2 outline-none focus:border-cyan-500/50"
+                  placeholder="Tilføj vare..."
+                  value={newItem.name}
+                  onChange={(e) => setNewItem({...newItem, name: e.target.value})}
+                />
+                <input 
+                  className="bg-black/20 border border-white/10 rounded-xl px-3 py-2 outline-none focus:border-cyan-500/50"
+                  placeholder="Antal"
+                  value={newItem.qty}
+                  onChange={(e) => setNewItem({...newItem, qty: e.target.value})}
+                />
+                <button type="submit" className="bg-cyan-500/20 border border-cyan-400/30 px-4 rounded-xl font-bold">+</button>
+              </form>
+
+              <div className="flex gap-2 mb-4 text-xs">
+                {["all", "open", "done"].map(f => (
+                  <button 
+                    key={f}
+                    onClick={() => setItemFilter(f)}
+                    className={`px-3 py-1.5 rounded-full border transition-all ${itemFilter === f ? 'border-cyan-500/50 bg-cyan-500/20' : 'border-white/10 bg-white/5'}`}
+                  >
+                    {f === "all" ? "Alle" : f === "open" ? "Ikke købt" : "Købt"}
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex flex-col gap-2">
+                {filteredItems.map(item => (
+                  <div key={item.id} className={`flex items-center justify-between p-3 rounded-xl border border-white/5 bg-black/10 ${item.isDone ? 'opacity-50' : ''}`}>
+                    <div className="flex items-center gap-3 cursor-pointer" onClick={() => toggleItem(item.id)}>
+                      <div className={`w-5 h-5 rounded border flex items-center justify-center ${item.isDone ? 'bg-green-500/20 border-green-500/50' : 'border-white/20'}`}>
+                        {item.isDone && "✓"}
+                      </div>
+                      <div className="flex flex-col">
+                        <span className={`text-sm font-bold ${item.isDone ? 'line-through' : ''}`}>{item.name}</span>
+                        <span className="text-[10px] text-slate-500">{item.qty}</span>
+                      </div>
+                    </div>
+                    <button onClick={() => deleteItem(item.id)} className="text-slate-500 hover:text-red-400">🗑</button>
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : (
+            <div className="h-full flex items-center justify-center text-slate-500 italic">Vælg en liste til venstre</div>
+          )}
+        </section>
       </div>
-      <div class="item-actions">
-        <button class="iconbtn" title="${item.isDone ? "Marker som ikke købt" : "Marker som købt"}">✔</button>
-        <button class="iconbtn danger" title="Slet vare">🗑</button>
-      </div>
-    `;
+    </div>
+  );
+};
 
-    const [btnToggle, btnDelete] = row.querySelectorAll("button");
-
-    btnToggle.addEventListener("click", async () => {
-      await apiToggleItem(list.id, item.id);
-      await loadActiveList();
-      renderAll();
-    });
-
-    btnDelete.addEventListener("click", async () => {
-      await apiDeleteItem(list.id, item.id);
-      await loadActiveList();
-      renderAll();
-    });
-
-    // klik på venstre side toggler også
-    row.querySelector(".item-left").addEventListener("click", async () => {
-      await apiToggleItem(list.id, item.id);
-      await loadActiveList();
-      renderAll();
-    });
-
-    els.items.appendChild(row);
-  }
-}
-
-function setChipActive(el, active) {
-  if (!el) return;
-  el.classList.toggle("active", active);
-}
-
-function renderAll() {
-  renderLists();
-  renderItems();
-}
-
-// =====================================================
-// ACTIONS
-// =====================================================
-
-async function createList() {
-  const name = prompt("Navn på liste:");
-  if (!name) return;
-
-  await apiCreateList(name);
-  await loadLists();
-}
-
-async function renameList() {
-  const list = state.lists.find(l => l.id === state.activeListId);
-  if (!list) return;
-
-  const name = prompt("Nyt navn:", list.name);
-  if (!name) return;
-
-  await apiRenameList(list.id, name);
-  await loadLists();
-}
-
-async function deleteList() {
-  const list = state.lists.find(l => l.id === state.activeListId);
-  if (!list) return;
-
-  if (!confirm("Slet liste?")) return;
-
-  await apiDeleteList(list.id);
-  state.activeListId = null;
-  await loadLists();
-}
-
-async function addItem(e) {
-  e.preventDefault();
-
-  const list = state.lists.find(l => l.id === state.activeListId);
-  if (!list) return;
-
-  const name = els.itemName.value.trim();
-  const qty = els.itemQty.value.trim();
-
-  if (!name) return;
-
-  await apiAddItem(list.id, name, qty);
-  els.itemName.value = "";
-  els.itemQty.value = "";
-
-  await loadActiveList();
-  renderAll();
-}
-
-// =====================================================
-// UTILS
-// =====================================================
-
-function escapeHtml(str) {
-  return String(str)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;");
-}
-
-// =====================================================
-// EVENTS
-// =====================================================
-
-els.btnNewList.addEventListener("click", createList);
-els.btnRenameList.addEventListener("click", renameList);
-els.btnDeleteList.addEventListener("click", deleteList);
-els.itemForm.addEventListener("submit", addItem);
-
-els.filterAll.addEventListener("click", () => {
-  state.itemFilter = "all";
-  renderItems();
-});
-
-els.filterOpen.addEventListener("click", () => {
-  state.itemFilter = "open";
-  renderItems();
-});
-
-els.filterDone.addEventListener("click", () => {
-  state.itemFilter = "done";
-  renderItems();
-});
-
-els.btnClearDone.addEventListener("click", async () => {
-  const list = state.lists.find(l => l.id === state.activeListId);
-  if (!list) return;
-
-  const doneCount = (list.items ?? []).filter(i => i.isDone).length;
-  if (doneCount === 0) return;
-
-  await apiClearDone(list.id);
-  await loadActiveList();
-  renderAll();
-});
-
-els.listSearch.addEventListener("input", (e) => {
-  state.listSearch = e.target.value || "";
-  renderLists();
-});
-
-
-// =====================================================
-// INIT
-// =====================================================
-function setRightPanelEnabled(enabled) {
-  els.btnRenameList.disabled = !enabled;
-  els.btnDeleteList.disabled = !enabled;
-
-  els.itemName.disabled = !enabled;
-  els.itemQty.disabled = !enabled;
-  els.itemForm.querySelector("button[type='submit']").disabled = !enabled;
-
-  els.filterAll.disabled = !enabled;
-  els.filterOpen.disabled = !enabled;
-  els.filterDone.disabled = !enabled;
-  els.btnClearDone.disabled = !enabled;
-}
-
-loadLists();
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App />);

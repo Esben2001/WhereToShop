@@ -1,98 +1,18 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="da">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Indkøbsliste</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <link rel="stylesheet" href="./assets/styles.css" />
 </head>
-<body>
-  <div class="app">
-    <header class="topbar">
-      <div class="brand">
-        <div class="logo">🛒</div>
-        <div>
-          <h1>Indkøbslister</h1>
-          <p>Hold styr på dine varer — enkelt og hurtigt.</p>
-        </div>
-      </div>
-
-      <div class="top-actions">
-        <button id="btnNewList" class="btn primary">+ Ny liste</button>
-      </div>
-    </header>
-
-    <main class="grid">
-      <!-- Left: lists -->
-      <section class="panel">
-        <div class="panel-head">
-          <h2>Dine lister</h2>
-          <div class="search">
-            <input id="listSearch" type="search" placeholder="Søg lister…" />
-          </div>
-        </div>
-
-        <div id="lists" class="list-cards" aria-live="polite"></div>
-
-        <div class="hint">
-          Tip: Lav fx “Ugeindkøb”, “Fødselsdag”, “Madplan”.
-        </div>
-      </section>
-
-      <!-- Right: items -->
-      <section class="panel">
-        <div class="panel-head">
-          <div>
-            <h2 id="activeListTitle">Vælg en liste</h2>
-            <p id="activeListMeta" class="muted">Opret eller vælg en liste til venstre.</p>
-          </div>
-
-          <div class="panel-actions">
-            <button id="btnRenameList" class="btn" disabled>Omdøb</button>
-            <button id="btnDeleteList" class="btn danger" disabled>Slet liste</button>
-          </div>
-        </div>
-
-        <form id="itemForm" class="item-form">
-          <input id="itemName" type="text" placeholder="Tilføj vare… (fx mælk)" autocomplete="off" disabled />
-          <input id="itemQty" type="text" placeholder="Antal (fx 2)" inputmode="numeric" disabled />
-          <button class="btn primary" type="submit" disabled>Tilføj</button>
-        </form>
-
-        <div class="filters">
-          <button id="filterAll" class="chip active" disabled>Alle</button>
-          <button id="filterOpen" class="chip" disabled>Ikke købt</button>
-          <button id="filterDone" class="chip" disabled>Købt</button>
-          <div class="spacer"></div>
-          <button id="btnClearDone" class="btn subtle" disabled>Ryd købte</button>
-        </div>
-
-        <div id="items" class="items" aria-live="polite"></div>
-
-        <footer class="footer muted">
-          <span id="stats">0 varer</span>
-        </footer>
-      </section>
-    </main>
-  </div>
-
-  <!-- Modal -->
-  <div id="modalBackdrop" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-hidden="true">
-    <div class="modal">
-      <h3 id="modalTitle">Titel</h3>
-      <p id="modalText" class="muted">Tekst</p>
-
-      <div id="modalInputWrap" class="modal-input hidden">
-        <input id="modalInput" type="text" />
-      </div>
-
-      <div class="modal-actions">
-        <button id="modalCancel" class="btn">Annuller</button>
-        <button id="modalOk" class="btn primary">OK</button>
-      </div>
-    </div>
-  </div>
-
-  <script src="./assets/app.js"></script>
+<body class="bg-[#0b1020] text-slate-200">
+  <div id="root"></div>
+  
+  <script type="text/babel" src="./assets/app.js"></script>
 </body>
 </html>
