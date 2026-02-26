@@ -1,30 +1,30 @@
-const { useState, useEffect } = React;
+const { useState, useEffect } = React; // Hent useState og useEffect direkte fra React-objektet
 
 const API_BASE = "http://localhost:5000/api";
 
 const App = () => {
-  const [lists, setLists] = useState([]);
-  const [activeList, setActiveList] = useState(null);
-  const [activeListId, setActiveListId] = useState(null);
-  const [listSearch, setListSearch] = useState("");
-  const [itemFilter, setItemFilter] = useState("all");
-  const [newItem, setNewItem] = useState({ name: "", qty: "" });
+  const [lists, setLists] = useState([]); //Alle lister - bruges til venstre panel
+  const [activeList, setActiveList] = useState(null); // Den valgte liste - bruges til højre panel
+  const [activeListId, setActiveListId] = useState(null); // ID på den valgte liste - når denne ændrer sig, hentes den nye aktive liste
+  const [listSearch, setListSearch] = useState(""); // Søgetekst til at filtrere lister i venstre panel
+  const [itemFilter, setItemFilter] = useState("all"); // Filter 
+  const [newItem, setNewItem] = useState({ name: "", qty: "" }); // Tilføj vare og antal - bruges i formularen til at tilføje nye varer
 
-  // Init: Hent lister
+  // Hent alle lister når appen starter
   useEffect(() => {
     fetchLists();
-  }, []);
+  }, []); // [] betyder: kør kun én gang.
 
-  // Hent aktiv liste når ID skifter
+  // Hent valgteliste når activeListId ændrer sig
   useEffect(() => {
     if (activeListId) fetchActiveList(activeListId);
-  }, [activeListId]);
+  }, [activeListId]); // [activeListId] betyder: kør når activeListId ændrer sig.
 
   const fetchLists = async () => {
     const r = await fetch(`${API_BASE}/lists`);
     const data = await r.json();
     setLists(data);
-    if (data.length > 0 && !activeListId) setActiveListId(data[0].id);
+    if (data.length > 0 && !activeListId) setActiveListId(data[0].id); // Hvis der ikke er en aktiv liste, sæt den første som aktiv liste
   };
 
   const fetchActiveList = async (id) => {
@@ -210,4 +210,4 @@ const App = () => {
 };
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(<App />);
+root.render(React.createElement(App));
