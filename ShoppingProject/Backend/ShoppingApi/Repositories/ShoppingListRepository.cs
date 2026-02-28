@@ -156,17 +156,4 @@ public class ShoppingListRepository : IShoppingListRepository
         var rows = await conn.ExecuteAsync(sql, new { listId, itemId });
         return rows > 0;
     }
-
-    // =====================================================
-    // CLEAR DONE ITEMS
-    // =====================================================
-    public async Task<int> ClearDoneAsync(int listId)
-    {
-        const string sql = @"
-        DELETE FROM dbo.ShoppingItems
-        WHERE ListId = @listId AND IsDone = 1;";
-
-        using var conn = _db.CreateConnection();
-        return await conn.ExecuteAsync(sql, new { listId });
-    }
 }

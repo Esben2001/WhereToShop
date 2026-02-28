@@ -14,5 +14,4 @@ public interface IShoppingListService
     Task<ShoppingListDto?> AddItemAsync(int id, AddItemRequest req);
     Task<bool?> ToggleDoneAsync(int id, int itemId);
     Task<bool> DeleteItemAsync(int id, int itemId);
-    Task<int> ClearDoneAsync(int id);
 }

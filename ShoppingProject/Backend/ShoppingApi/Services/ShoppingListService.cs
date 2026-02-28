@@ -26,7 +26,9 @@ public class ShoppingListService : IShoppingListService
     }
 
     public Task<ShoppingListDto?> GetListAsync(int id)
-        => _repo.GetListAsync(id);
+    {
+        return _repo.GetListAsync(id);
+    }
 
     public async Task<ShoppingListDto?> CreateListAsync(CreateListRequest req)
     {
@@ -48,7 +50,9 @@ public class ShoppingListService : IShoppingListService
     }
 
     public Task<bool> DeleteListAsync(int id)
-        => _repo.DeleteListAsync(id);
+    {
+        return _repo.DeleteListAsync(id);
+    }
 
     public async Task<ShoppingListDto?> AddItemAsync(int id, AddItemRequest req)
     {
@@ -66,11 +70,12 @@ public class ShoppingListService : IShoppingListService
     }
 
     public Task<bool?> ToggleDoneAsync(int id, int itemId)
-        => _repo.ToggleItemDoneAsync(id, itemId);
+    {
+        return _repo.ToggleItemDoneAsync(id, itemId);
+    }
 
     public Task<bool> DeleteItemAsync(int id, int itemId)
-        => _repo.DeleteItemAsync(id, itemId);
-
-    public Task<int> ClearDoneAsync(int id)
-        => _repo.ClearDoneAsync(id);
+    {
+        return _repo.DeleteItemAsync(id, itemId);
+    }
 }

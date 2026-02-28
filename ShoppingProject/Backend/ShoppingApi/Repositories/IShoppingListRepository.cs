@@ -14,5 +14,4 @@ public interface IShoppingListRepository
     Task<int?> AddItemAsync(int listId, string name, string? qty);
     Task<bool?> ToggleItemDoneAsync(int listId, int itemId);
     Task<bool> DeleteItemAsync(int listId, int itemId);
-    Task<int> ClearDoneAsync(int listId);
 }
