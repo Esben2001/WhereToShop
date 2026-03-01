@@ -29,25 +29,6 @@ window.StoresPage = function StoresPage({
     );
   };
 
-  if (!activeList) {
-    return (
-      <section className="border border-white/10 bg-white/5 rounded-2xl p-4 shadow-2xl min-h-[560px]">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-2xl font-bold">Vælg butikker</h2>
-          <button
-            onClick={onBack}
-            className="text-xs bg-white/5 px-3 py-1.5 rounded-lg border border-white/10 hover:bg-white/10"
-          >
-            ← Tilbage
-          </button>
-        </div>
-        <div className="text-slate-400">
-          Ingen aktiv liste valgt. Gå tilbage og vælg en liste først.
-        </div>
-      </section>
-    );
-  }
-
   return (
     <section className="border border-white/10 bg-white/5 rounded-2xl p-4 shadow-2xl min-h-[560px]">
       <div className="flex items-start justify-between mb-4">
@@ -68,7 +49,11 @@ window.StoresPage = function StoresPage({
       </div>
 
       <div className="border border-white/10 bg-black/10 rounded-2xl p-3 mb-4">
-        <div className="text-xs text-slate-400 mb-2">Varer i listen:</div>
+         {/* Header med 2 kolonner */}
+          <div className="flex justify-between text-xs text-slate-400 mb-2">
+            <span>Varer i listen:</span>
+            <span>Antal:</span>
+        </div>
         <div className="flex flex-col gap-1">
           {(activeList.items || []).length === 0 ? (
             <div className="text-slate-500 text-sm italic">Ingen varer endnu.</div>
@@ -78,7 +63,7 @@ window.StoresPage = function StoresPage({
                 <span className={it.isDone ? "line-through text-slate-500" : ""}>
                   {it.name}
                 </span>
-                <span className="text-slate-400 text-xs">{it.qty}</span>
+                <span>{it.qty}</span>
               </div>
             ))
           )}
