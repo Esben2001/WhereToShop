@@ -9,9 +9,6 @@ public class ShoppingListRepository : IShoppingListRepository
     private readonly Database _db;
     public ShoppingListRepository(Database db) => _db = db;
 
-    // =====================================================
-    // LIST OVERVIEW (summary)
-    // =====================================================
     public async Task<IEnumerable<(int Id, string Name, DateTime CreatedAt, int OpenCount, int TotalCount)>> GetListsAsync()
     {
         const string sql = @"SELECT l.Id, l.Name, l.CreatedAt, SUM(CASE WHEN i.IsDone = 0 THEN 1 ELSE 0 END) AS OpenCount, 
@@ -24,9 +21,7 @@ public class ShoppingListRepository : IShoppingListRepository
         return await conn.QueryAsync<(int, string, DateTime, int, int)>(sql);
     }
 
-    // =====================================================
-    // GET SINGLE LIST (WITH ITEMS)
-    // =====================================================
+    // Henter en enkelt liste med alle dens items
     public async Task<ShoppingListDto?> GetListAsync(int listId)
     {
         const string listSql = @"SELECT Id, Name, CreatedAt
@@ -54,9 +49,7 @@ public class ShoppingListRepository : IShoppingListRepository
         return new ShoppingListDto(list.Id, list.Name, list.CreatedAt, items);
     }
 
-    // =====================================================
-    // CREATE LIST
-    // =====================================================
+    // Opret en ny liste og returner dens Id
     public async Task<int> CreateListAsync(string name)
     {
         const string sql = @"
@@ -68,9 +61,7 @@ public class ShoppingListRepository : IShoppingListRepository
         return await conn.ExecuteScalarAsync<int>(sql, new { name });
     }
 
-    // =====================================================
-    // RENAME LIST
-    // =====================================================
+    // Ændre navn på liste
     public async Task<bool> RenameListAsync(int listId, string name)
     {
         const string sql = @"
@@ -83,9 +74,7 @@ public class ShoppingListRepository : IShoppingListRepository
         return rows > 0;
     }
 
-    // =====================================================
-    // DELETE LIST
-    // =====================================================
+    // Slet en liste og alle dens items
     public async Task<bool> DeleteListAsync(int listId)
     {
         const string sql = @"
@@ -97,9 +86,7 @@ public class ShoppingListRepository : IShoppingListRepository
         return rows > 0;
     }
 
-    // =====================================================
-    // ADD ITEM
-    // =====================================================
+    // Tilføj item til liste og returner item Id
     public async Task<int?> AddItemAsync(int listId, string name, string? qty)
     {
         const string existsSql = @"SELECT COUNT(1) FROM dbo.ShoppingLists WHERE Id = @listId;";
@@ -116,9 +103,7 @@ public class ShoppingListRepository : IShoppingListRepository
         return await conn.ExecuteScalarAsync<int>(insert, new { listId, name, qty });
     }
 
-    // =====================================================
-    // TOGGLE ITEM
-    // =====================================================
+    // Toggle item done/undone og returner nye status
     public async Task<bool?> ToggleItemDoneAsync(int listId, int itemId)
     {
         using var conn = _db.CreateConnection();
@@ -143,9 +128,7 @@ public class ShoppingListRepository : IShoppingListRepository
         return next;
     }
 
-    // =====================================================
-    // DELETE ITEM
-    // =====================================================
+    // Sletter et item fra en liste
     public async Task<bool> DeleteItemAsync(int listId, int itemId)
     {
         const string sql = @"
