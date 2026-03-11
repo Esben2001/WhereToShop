@@ -1,27 +1,26 @@
 # WhereToShop
 Kodes i visual studio code
 
+# Beskrivelse
+WhereToShop er en webapplikation, der hjælper brugeren med at finde ud af hvilken butik der er bedst at handle i ud fra en indkøbsliste.
+
+Systemet analyserer brugerens indkøbsliste og giver en anbefaling om, hvor det giver mest mening at handle, baseret på hvilke varer der ønskes.
+
+Formålet med projektet er at gøre indkøbsplanlægning mere effektiv og overskuelig, samtidig med at det fungerer som et læringsprojekt inden for webudvikling.
+
+# Teknologier
 Frontend 
   - HTML
-  - CSS - Bootstrap
-  - React
+  - CSS
+  - JavaScript (React)
 
 Backend 
-  - Login - Auth0
-  - Database - MySQL
-  - C# .net
-  - API - RESTAPI
+  - REST API
+  - Database (MySQL)
+  - C# .NET
+  - REST API
 
+Versionsstyring
+  - Git & GitHub
 
-Discription 
-  - Der skal laves en hjemmeside/browser, hvor man kan crud indkøbsliste og indsæt varer samt crud varer. 
-  - Den skal være kombineret med API til en database. 
-  - Der skal være mulighed for at login med Auth0 samt gæstelogin. 
-  - Der skal være mulighed for at få informationer om sin indkøbsliste
-  - Der skal være mulighed for at kunne snakke med en AI som kan give mulighed til at få guide til hvor man kan handle biligst samt pris osv.
-
-Deployment
-  - Når projektet første version er done
-  - Skal projeket connectes til Jenkins CI/CD - Docker samt Kubernetes 
-  - Alt skal fungeres i en container med DockerFile og Docker-Composefile
 
