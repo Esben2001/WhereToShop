@@ -1,4 +1,4 @@
-# Indkøb-SideProject
+# WhereToShop
 Kodes i visual studio code
 
 Frontend 
