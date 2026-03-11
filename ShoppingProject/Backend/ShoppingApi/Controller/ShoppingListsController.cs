@@ -72,4 +72,53 @@ public class ShoppingListsController : ControllerBase
         var deleted = await _service.DeleteItemAsync(id, itemId);
         return deleted ? NoContent() : NotFound("Item not found.");
     }
+
+    /// <summary>
+    /// Frontend: StoresPage "AI generering" button.
+    /// Takes the current shopping list + selected stores and returns a stubbed "AI" result.
+    /// Replace the stub with a real AI integration later.
+    /// </summary>
+    [HttpPost("{id:int}/ai-generate")]
+    public async Task<IActionResult> AiGenerate(int id, [FromBody] AiGenerateRequest req, [FromServices] AiShoppingService ai)
+    {
+        // Ensure list exists
+        var list = await _service.GetListAsync(id);
+        if (list is null) return NotFound("List not found.");
+
+        var stores = (req?.Stores ?? new List<string>())
+            .Select(s => (s ?? "").Trim())
+            .Where(s => s.Length > 0)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (stores.Count == 0)
+            return BadRequest("Select at least one store.");
+
+        var items = (req?.Items ?? new List<AiGenerateItemRequest>())
+            .Where(i => i is not null)
+            .Select(i => new
+            {
+                name = (i.Name ?? "").Trim(),
+                qty = string.IsNullOrWhiteSpace(i.Qty) ? null : i.Qty.Trim(),
+                isDone = i.IsDone ?? false
+            })
+            .Where(i => i.name.Length > 0)
+            .ToList();
+
+        if (items.Count == 0)
+            return BadRequest("Shopping list is empty.");
+
+        // Call real AI integration
+        // Use sanitized stores list.
+        var sanitizedReq = new AiGenerateRequest(stores, req?.Items ?? new List<AiGenerateItemRequest>());
+        var aiJson = await ai.GenerateAsync(sanitizedReq);
+
+        return Ok(new
+        {
+            listId = id,
+            listName = list.Name,
+            generatedAtUtc = DateTime.UtcNow,
+            result = aiJson.RootElement
+        });
+    }
 }
