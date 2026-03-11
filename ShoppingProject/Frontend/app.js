@@ -10,12 +10,12 @@ const App = () => {
   const [activeList, setActiveList] = useState(null); // Den valgte liste - bruges til højre panel
   const [activeListId, setActiveListId] = useState(null); // ID på den valgte liste - når denne ændrer sig, hentes den nye aktive liste
   const [listSearch, setListSearch] = useState(""); // Søgetekst til at filtrere lister i venstre panel
-  const [itemFilter, setItemFilter] = useState("all"); // Filter 
+  const [itemFilter, setItemFilter] = useState("all"); // Filter til at vise alle varer, kun åbne varer eller kun købte varer i den aktive liste 
   const [newItem, setNewItem] = useState({ name: "", qty: "" }); // Tilføj vare og antal - bruges i formularen til at tilføje nye varer
   
   // NY: State til at holde styr på valgte butikker i StoresPage
-  const [page, setPage] = useState("list"); // "list" eller "stores"
-  const [selectedStores, setSelectedStores] = useState([]); // Array af de valgte butikker
+  const [page, setPage] = useState("list"); 
+  const [selectedStores, setSelectedStores] = useState([]); 
   
   // NY: state til at holde AI-responsen, så vi kan vise den på en separat side
   const [aiResponse, setAiResponse] = useState(null);
